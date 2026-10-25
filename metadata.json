@@ -1,0 +1,7 @@
+{
+  "name": "سامانه کارشناسی خودرو | KarShenas Car Inspection",
+  "description": "سامانه جامع و پیشرفته کارشناسی فنی و بدنه خودرو (PWA) با طراحی مدرن موبایل‌محور و پشتیبانی کامل از تم روشن و تاریک",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

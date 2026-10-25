@@ -1,0 +1,76 @@
+{
+  "entities": {
+    "Workspace": {
+      "title": "Workspace",
+      "description": "Dealership or inspection center workspace containing authorized members and inspection records",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier of the workspace" },
+        "name": { "type": "string", "description": "Display name of the inspection center or dealership" },
+        "code": { "type": "string", "description": "Short invitation or tracking code for the workspace" },
+        "ownerId": { "type": "string", "description": "Firebase Auth UID of the workspace owner" },
+        "ownerEmail": { "type": "string", "description": "Email address of the workspace owner" },
+        "members": {
+          "type": "object",
+          "description": "Map of user UID to workspace member role and profile info"
+        },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Workspace creation timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Workspace last update timestamp" }
+      },
+      "required": ["id", "name", "ownerId", "createdAt", "updatedAt"]
+    },
+    "Inspection": {
+      "title": "Inspection",
+      "description": "Comprehensive vehicle inspection record belonging to a workspace",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique inspection ID" },
+        "workspaceId": { "type": "string", "description": "Parent workspace identifier" },
+        "trackingCode": { "type": "string", "description": "Human readable Persian tracking code" },
+        "vehicle": { "type": "object", "description": "Vehicle details, make, model, year, plate, mileage" },
+        "items": { "type": "array", "description": "List of checklist items with status, notes, and weights" },
+        "status": { "type": "string", "enum": ["draft", "in_progress", "completed"], "description": "Current inspection phase" },
+        "inspectorName": { "type": "string", "description": "Name of inspector who performed inspection" },
+        "notes": { "type": "string", "description": "General summary notes" },
+        "revision": { "type": "number", "description": "Revision number for optimistic concurrency and conflict detection" },
+        "lastModifiedBy": { "type": "string", "description": "UID of last user who modified record" },
+        "isDeleted": { "type": "boolean", "description": "Soft deletion tombstone marker for multi-device sync" },
+        "deletedAt": { "type": "string", "format": "date-time", "description": "Timestamp when deleted" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last update timestamp" }
+      },
+      "required": ["id", "workspaceId", "trackingCode", "vehicle", "items", "status", "revision", "createdAt", "updatedAt"]
+    },
+    "PhotoEvidenceMeta": {
+      "title": "PhotoEvidenceMeta",
+      "description": "Metadata for photo evidence attached to a defective inspection item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique photo identifier" },
+        "inspectionId": { "type": "string", "description": "Parent inspection ID" },
+        "itemId": { "type": "string", "description": "Checklist item ID" },
+        "filename": { "type": "string", "description": "Original filename" },
+        "fileSize": { "type": "number", "description": "File size in bytes" },
+        "mimeType": { "type": "string", "description": "MIME type" },
+        "storagePath": { "type": "string", "description": "Cloud Storage path for secure authenticated retrieval" },
+        "thumbnailDataUrl": { "type": "string", "description": "Lightweight client thumbnail data URL" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Upload timestamp" }
+      },
+      "required": ["id", "inspectionId", "itemId", "filename", "storagePath", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/workspaces/{workspaceId}": {
+      "schema": { "$ref": "#/entities/Workspace" },
+      "description": "Workspace records for dealerships and inspection centers"
+    },
+    "/workspaces/{workspaceId}/inspections/{inspectionId}": {
+      "schema": { "$ref": "#/entities/Inspection" },
+      "description": "Inspections belonging to a workspace"
+    },
+    "/workspaces/{workspaceId}/inspections/{inspectionId}/photos/{photoId}": {
+      "schema": { "$ref": "#/entities/PhotoEvidenceMeta" },
+      "description": "Photo evidence metadata attached to an inspection"
+    }
+  }
+}

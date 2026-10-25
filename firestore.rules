@@ -1,0 +1,68 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isWorkspaceMember(workspaceId) {
+      return isAuthenticated() && (
+        exists(/databases/$(database)/documents/workspaces/$(workspaceId)) && (
+          get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.ownerId == request.auth.uid ||
+          (request.auth.uid in get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.members)
+        )
+      );
+    }
+
+    function isWorkspaceOwner(workspaceId) {
+      return isAuthenticated() && (
+        exists(/databases/$(database)/documents/workspaces/$(workspaceId)) &&
+        get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.ownerId == request.auth.uid
+      );
+    }
+
+    // Connectivity test path for health checks
+    match /test/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Workspaces collection
+    match /workspaces/{workspaceId} {
+      // Members can read their workspace document
+      allow read: if isAuthenticated() && (
+        resource.data.ownerId == request.auth.uid ||
+        (request.auth.uid in resource.data.members)
+      );
+
+      // Authenticated users can create a workspace where they are owner
+      allow create: if isAuthenticated() &&
+        request.resource.data.ownerId == request.auth.uid;
+
+      // Only the workspace owner can update workspace details, and cannot reassign ownership
+      allow update: if isWorkspaceOwner(workspaceId) &&
+        request.resource.data.ownerId == resource.data.ownerId;
+
+      // Only owner can delete a workspace
+      allow delete: if isWorkspaceOwner(workspaceId);
+
+      // Inspections under workspace
+      match /inspections/{inspectionId} {
+        allow read, write: if isWorkspaceMember(workspaceId);
+
+        // Photo metadata subcollection
+        match /photos/{photoId} {
+          allow read, write: if isWorkspaceMember(workspaceId);
+        }
+      }
+    }
+
+    // Default deny all other paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

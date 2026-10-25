@@ -1,0 +1,193 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    --font-sans: 'Vazirmatn', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    
+    /* Light Theme (Refined green & off-white) */
+    --color-bg-canvas: #f8faf8;
+    --color-bg-surface: #ffffff;
+    --color-bg-elevated: #ffffff;
+    --color-bg-muted: #f1f5f2;
+    --color-bg-subtle: #e8f0eb;
+    
+    --color-border-subtle: #e2e8f0;
+    --color-border-default: #d3dfd7;
+    --color-border-focused: #059669;
+    
+    --color-text-primary: #0f172a;
+    --color-text-secondary: #475569;
+    --color-text-muted: #64748b;
+    --color-text-inverse: #ffffff;
+
+    --color-primary-50: #ecfdf5;
+    --color-primary-100: #d1fae5;
+    --color-primary-200: #a7f3d0;
+    --color-primary-500: #10b981;
+    --color-primary-600: #059669;
+    --color-primary-700: #047857;
+    --color-primary-800: #065f46;
+
+    color-scheme: light;
+  }
+
+  .dark {
+    /* Dark Theme (Deep green-black & raised dark-green) */
+    --color-bg-canvas: #08100c;
+    --color-bg-surface: #0f1a14;
+    --color-bg-elevated: #15241c;
+    --color-bg-muted: #1b2c23;
+    --color-bg-subtle: #243a2f;
+
+    --color-border-subtle: #192b21;
+    --color-border-default: #253d2f;
+    --color-border-focused: #10b981;
+
+    --color-text-primary: #f1f5f3;
+    --color-text-secondary: #cbd5e1;
+    --color-text-muted: #94a3b8;
+    --color-text-inverse: #08100c;
+
+    --color-primary-50: #064e3b;
+    --color-primary-100: #065f46;
+    --color-primary-200: #047857;
+    --color-primary-500: #10b981;
+    --color-primary-600: #34d399;
+    --color-primary-700: #6ee7b7;
+    --color-primary-800: #a7f3d0;
+
+    color-scheme: dark;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--color-bg-canvas);
+    color: var(--color-text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+}
+
+/* Glassmorphism restrained utilities */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-color: rgba(226, 232, 240, 0.85);
+}
+
+.dark .glass-panel {
+  background: rgba(15, 26, 20, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-color: rgba(37, 61, 47, 0.7);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(211, 223, 215, 0.75);
+}
+
+.dark .glass-card {
+  background: rgba(17, 28, 22, 0.92);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(37, 61, 47, 0.65);
+}
+
+/* English numbers display styling */
+.font-latin-num {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, 'Vazirmatn', sans-serif;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
+  border-radius: 9999px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(52, 211, 153, 0.25);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(16, 185, 129, 0.6);
+}
+
+/* ================= PRINT & PDF STYLESHEET ================= */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm 12mm;
+  }
+
+  html, body {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    font-size: 11pt !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Hide interactive controls, navbars, and buttons in print */
+  header,
+  nav,
+  .no-print,
+  button,
+  [role="dialog"]:not(.print-dialog) {
+    display: none !important;
+  }
+
+  /* Unset padding added for fixed navigation */
+  body {
+    padding-bottom: 0 !important;
+  }
+
+  /* Print certificate container reset */
+  .print-sheet {
+    box-shadow: none !important;
+    border: none !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  /* Keep defects, notes, and photos grouped together on page */
+  .print-keep-together,
+  .print-break-inside-avoid {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Ensure contrast on light paper */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Prevent images from overflowing page boundaries */
+  img {
+    max-height: 180px !important;
+    object-fit: cover !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+}

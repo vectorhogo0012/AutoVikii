@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg-grad-512" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#047857" />
+      <stop offset="100%" stop-color="#064e3b" />
+    </linearGradient>
+    <linearGradient id="shield-grad-512" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <filter id="shadow-512" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000" flood-opacity="0.35" />
+    </filter>
+  </defs>
+
+  <!-- Background Base -->
+  <rect width="512" height="512" rx="112" fill="url(#bg-grad-512)" />
+  <rect width="504" height="504" x="4" y="4" rx="108" fill="none" stroke="#34d399" stroke-width="4" stroke-opacity="0.35" />
+
+  <!-- Shield Badge -->
+  <g filter="url(#shadow-512)">
+    <path d="M256 75 C330 75 394 101 405 170 C405 293 320 384 256 421 C192 384 107 293 107 170 C118 101 182 75 256 75 Z" 
+          fill="url(#shield-grad-512)" 
+          stroke="#a7f3d0" 
+          stroke-width="6" />
+  </g>
+
+  <!-- Car Silhouette & Checkmark Inside Shield -->
+  <path d="M181 256 C186 218 208 197 256 197 C304 197 326 218 331 256 L358 272 C366 277 368 285 368 293 L368 310 C368 315 363 320 357 320 L341 320 C341 336 328 350 312 350 C296 350 283 336 283 320 L229 320 C229 336 216 350 200 350 C184 350 171 336 171 320 L155 320 C149 320 144 315 144 310 L144 293 C144 285 147 277 154 272 Z" 
+        fill="#ffffff" 
+        fill-opacity="0.95" />
+  
+  <path d="M197 253 C202 229 218 216 250 216 L250 253 Z" fill="#047857" />
+  <path d="M262 216 C294 216 310 229 315 253 L262 253 Z" fill="#047857" />
+  
+  <!-- Inspection Checkmark Highlight -->
+  <circle cx="341" cy="165" r="48" fill="#10b981" stroke="#ffffff" stroke-width="8" />
+  <path d="M323 165 L336 178 L360 152" fill="none" stroke="#ffffff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+</svg>
