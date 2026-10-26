@@ -63,10 +63,22 @@ export function usePWAInstall() {
 }
 
 /**
- * Service Worker registration placeholder prepared for Section 02+ offline integration
+ * Secure Service Worker registration for offline app shell
  */
 export function registerServiceWorker() {
-  if (typeof window !== 'undefined' && 'serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
-    // Future service worker registration hook
+  if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker
+        .register('/sw.js', { scope: '/' })
+        .then((reg) => {
+          // Registered securely
+          if (reg.installing) {
+            // New worker installing
+          }
+        })
+        .catch(() => {
+          // SW registration failed gracefully (e.g. unsupported environment or private mode)
+        });
+    });
   }
 }

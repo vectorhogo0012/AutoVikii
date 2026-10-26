@@ -1,0 +1,11 @@
+# Gitleaks Configuration for KarShenas Vehicle Inspection PWA
+# Official reference: https://github.com/gitleaks/gitleaks
+
+[allowlist]
+description = "Global allowlist for public client configurations and non-secret test fixtures"
+paths = [
+  '''firebase-applet-config\.json''',
+  '''\.playwright-cli/''',
+  '''node_modules/''',
+  '''dist/''',
+]

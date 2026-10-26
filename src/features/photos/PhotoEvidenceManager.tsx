@@ -3,6 +3,7 @@ import { Camera, ImagePlus, Trash2, Eye, Loader2, AlertCircle } from 'lucide-rea
 import { PhotoEvidence } from '../../types/inspection';
 import { Button } from '../../components/ui/Button';
 import { PhotoLightboxModal } from './PhotoLightboxModal';
+import { LiveCameraModal } from './LiveCameraModal';
 import { formatByteSize } from '../../lib/media/imageCompression';
 
 export interface PhotoEvidenceManagerProps {
@@ -22,10 +23,10 @@ export const PhotoEvidenceManager: React.FC<PhotoEvidenceManagerProps> = ({
   onRemovePhoto,
   isDefectiveOrNeedsReview = false,
 }) => {
-  const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [selectedPhotoForPreview, setSelectedPhotoForPreview] = useState<PhotoEvidence | null>(null);
 
@@ -50,18 +51,32 @@ export const PhotoEvidenceManager: React.FC<PhotoEvidenceManagerProps> = ({
     }
   };
 
+  const handleLiveCameraCapture = async (blob: Blob) => {
+    setIsProcessing(true);
+    setErrorMessage(null);
+    try {
+      const fileName = `inspection_${itemId}_${Date.now()}.jpg`;
+      const file = new File([blob], fileName, { type: 'image/jpeg' });
+      await onAddPhoto(itemId, file);
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'خطا در ذخیره تصویر دوربین');
+      throw err;
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
     <div className="pt-2 text-right space-y-2">
-      {/* Hidden file inputs for Camera and Gallery */}
-      <input
-        ref={cameraInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        onChange={handleFilesSelected}
-        className="hidden"
-        aria-label="عکس با دوربین"
+      {/* Live Camera Viewfinder Modal */}
+      <LiveCameraModal
+        isOpen={isCameraOpen}
+        onClose={() => setIsCameraOpen(false)}
+        onCapture={handleLiveCameraCapture}
+        itemLabel={itemLabel}
       />
+
+      {/* Hidden file input for Gallery selection */}
       <input
         ref={galleryInputRef}
         type="file"
@@ -85,16 +100,16 @@ export const PhotoEvidenceManager: React.FC<PhotoEvidenceManagerProps> = ({
         </div>
 
         {/* Upload Buttons */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           <Button
-            variant="outline"
+            variant="primary"
             size="sm"
-            onClick={() => cameraInputRef.current?.click()}
+            onClick={() => setIsCameraOpen(true)}
             leftIcon={<Camera className="w-3.5 h-3.5" />}
             disabled={isProcessing}
-            className="text-xs h-8 px-2.5"
+            className="text-xs h-9 px-3 bg-emerald-600 hover:bg-emerald-500 font-medium"
           >
-            دوربین
+            دوربین زنده
           </Button>
 
           <Button
@@ -103,9 +118,9 @@ export const PhotoEvidenceManager: React.FC<PhotoEvidenceManagerProps> = ({
             onClick={() => galleryInputRef.current?.click()}
             leftIcon={<ImagePlus className="w-3.5 h-3.5" />}
             disabled={isProcessing}
-            className="text-xs h-8 px-2.5"
+            className="text-xs h-9 px-3"
           >
-            گالری
+            انتخاب از گالری
           </Button>
         </div>
       </div>

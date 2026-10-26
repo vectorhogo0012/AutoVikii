@@ -1,5 +1,6 @@
 import { InspectionRecord, VehicleInfo, InspectionItem, PhotoEvidence } from '../../types/inspection';
 import { createDefaultInspectionItems } from '../../features/checklist/checklistTemplates';
+import { createDefaultHandoverItems } from '../../features/checklist/handoverTemplates';
 import { indexedDbStorage, StorageQuotaInfo } from '../storage/indexedDb';
 
 export interface InspectionRepository {
@@ -64,6 +65,7 @@ function createSeedRecords(): InspectionRecord[] {
     },
     status: 'in_progress',
     items: inProgressItems,
+    handoverItems: createDefaultHandoverItems(),
     notes: 'درخواست کارشناسی ویژه رنگ و اصالت شاسی قبل از معامله',
     inspectorName: 'مهندس کمالی',
     revision: 1,
@@ -99,6 +101,14 @@ function createSeedRecords(): InspectionRecord[] {
     },
     status: 'completed',
     items: completedItems,
+    handoverItems: createDefaultHandoverItems().map(item => {
+      if (item.id === 'ho_fire_extinguisher') return { ...item, status: 'present_healthy' as const, note: 'شارژ تا پایان سال جاری' };
+      if (item.id === 'ho_warning_triangle') return { ...item, status: 'present_healthy' as const };
+      if (item.id === 'ho_spare_key') return { ...item, status: 'present_healthy' as const, note: 'هر دو ریموت هوشمند فابریک تحویل شد' };
+      if (item.id === 'ho_hubcaps') return { ...item, status: 'present_defective' as const, note: 'خط و خش روی قالپاق چرخ راست' };
+      if (item.id === 'ho_lighter') return { ...item, status: 'missing' as const, note: 'فندک در کنسول مفقود است' };
+      return { ...item, status: 'present_healthy' as const };
+    }),
     notes: 'خودرو در وضعیت سلامت کامل فنی و ادوات الکترونیکی تحویل شد',
     inspectorName: 'مهندس کمالی',
     revision: 1,
@@ -169,6 +179,7 @@ export class HybridIndexedDbInspectionRepository implements InspectionRepository
       vehicle,
       status: 'in_progress',
       items,
+      handoverItems: createDefaultHandoverItems(),
       notes,
       inspectorName: 'مهندس کمالی',
       revision: 1,

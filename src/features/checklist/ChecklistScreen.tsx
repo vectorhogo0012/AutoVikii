@@ -16,6 +16,7 @@ import {
   ChevronUp,
   Info,
   Car,
+  PackageCheck,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -25,6 +26,8 @@ import { ChecklistCategory, ItemStatus, InspectionItem } from '../../types/inspe
 import { getItemStatusDetails, formatEnglishDigits } from '../../lib/utils';
 import { NavigationTab } from '../../types/navigation';
 import { CATEGORY_DEFINITIONS } from './checklistTemplates';
+import { HandoverChecklistTab } from './HandoverChecklistTab';
+import { calculateHandoverSummary } from './handoverTemplates';
 import { useInspection } from '../inspection/InspectionContext';
 import { PhotoEvidenceManager } from '../photos/PhotoEvidenceManager';
 
@@ -32,11 +35,14 @@ export interface ChecklistScreenProps {
   onNavigate: (tab: NavigationTab) => void;
 }
 
-const CATEGORY_TABS: { id: ChecklistCategory; title: string; icon: React.ElementType }[] = [
+export type TabId = ChecklistCategory | 'handover';
+
+const ALL_TABS: { id: TabId; title: string; icon: React.ElementType }[] = [
   { id: 'body_paint', title: 'بدنه و رنگ', icon: Sparkles },
   { id: 'engine_mechanics', title: 'موتور و فنی', icon: Wrench },
   { id: 'interior', title: 'کابین و ادوات', icon: Armchair },
   { id: 'tires', title: 'لاستیک و رینگ', icon: CircleDot },
+  { id: 'handover', title: 'اقلام تحویل', icon: PackageCheck },
 ];
 
 export const ChecklistScreen: React.FC<ChecklistScreenProps> = ({ onNavigate }) => {
@@ -52,6 +58,7 @@ export const ChecklistScreen: React.FC<ChecklistScreenProps> = ({ onNavigate }) 
     getItemPhotos,
   } = useInspection();
 
+  const [currentTab, setCurrentTab] = useState<TabId>(activeCategory);
   const [expandedNoteItemId, setExpandedNoteItemId] = useState<string | null>(null);
 
   if (!currentInspection) {
@@ -66,19 +73,30 @@ export const ChecklistScreen: React.FC<ChecklistScreenProps> = ({ onNavigate }) 
   }
 
   const items = currentInspection.items || [];
-  const categoryItems = items.filter(item => item.category === activeCategory);
-  const currentCategoryDef = CATEGORY_DEFINITIONS[activeCategory];
-  const catSummary = scoreResult?.categoryBreakdown[activeCategory];
+  const handoverItems = currentInspection.handoverItems || [];
+  const handoverSummary = calculateHandoverSummary(handoverItems);
+
+  const isHandoverTab = currentTab === 'handover';
+  const currentCategoryDef = !isHandoverTab ? CATEGORY_DEFINITIONS[currentTab as ChecklistCategory] : null;
+  const catSummary = !isHandoverTab ? scoreResult?.categoryBreakdown[currentTab as ChecklistCategory] : null;
+  const categoryItems = !isHandoverTab ? items.filter(item => item.category === currentTab) : [];
 
   const categoryInspectedCount = catSummary?.inspectedCount ?? 0;
   const categoryTotalCount = catSummary?.totalCount ?? categoryItems.length;
   const categoryPercent = catSummary?.coveragePercentage ?? 0;
 
-  const currentCategoryIndex = CATEGORY_TABS.findIndex(t => t.id === activeCategory);
+  const currentTabIndex = ALL_TABS.findIndex(t => t.id === currentTab);
+
+  const selectTab = (tabId: TabId) => {
+    setCurrentTab(tabId);
+    if (tabId !== 'handover') {
+      setActiveCategory(tabId);
+    }
+  };
 
   const goToNextCategory = () => {
-    if (currentCategoryIndex < CATEGORY_TABS.length - 1) {
-      setActiveCategory(CATEGORY_TABS[currentCategoryIndex + 1].id);
+    if (currentTabIndex < ALL_TABS.length - 1) {
+      selectTab(ALL_TABS[currentTabIndex + 1].id);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       onNavigate('report');
@@ -86,8 +104,8 @@ export const ChecklistScreen: React.FC<ChecklistScreenProps> = ({ onNavigate }) 
   };
 
   const goToPrevCategory = () => {
-    if (currentCategoryIndex > 0) {
-      setActiveCategory(CATEGORY_TABS[currentCategoryIndex - 1].id);
+    if (currentTabIndex > 0) {
+      selectTab(ALL_TABS[currentTabIndex - 1].id);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       onNavigate('new-inspection');
@@ -100,7 +118,7 @@ export const ChecklistScreen: React.FC<ChecklistScreenProps> = ({ onNavigate }) 
       <Card className="p-4 sm:p-5 bg-white dark:bg-[#0f1a14] border border-slate-200/90 dark:border-emerald-900/40">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100">
                 چک‌لیست تخصصی کارشناسی خودرو
               </h2>
@@ -108,14 +126,14 @@ export const ChecklistScreen: React.FC<ChecklistScreenProps> = ({ onNavigate }) 
                 {currentInspection.vehicle.make} {currentInspection.vehicle.model}
               </Badge>
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
               کد پیگیری: <span className="font-latin-num font-bold text-emerald-700 dark:text-emerald-400">{currentInspection.trackingCode}</span> • شماره پلاک: ایران {currentInspection.vehicle.plate?.provinceCode} | {currentInspection.vehicle.plate?.prefix} {currentInspection.vehicle.plate?.letter} {currentInspection.vehicle.plate?.suffix}
             </p>
           </div>
 
           {/* Transparent Score Pill */}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-slate-50 dark:bg-[#111e17] border border-slate-200 dark:border-emerald-900/50 text-right">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-[#111e17] border border-slate-200 dark:border-emerald-900/50 text-right">
               <div>
                 <span className="text-[10px] text-slate-400 block font-medium">
                   {scoreResult?.isProvisional ? 'امتیاز فعلی (تقریبی)' : 'امتیاز نهایی کارشناسی'}
@@ -137,7 +155,7 @@ export const ChecklistScreen: React.FC<ChecklistScreenProps> = ({ onNavigate }) 
               size="sm"
               onClick={() => onNavigate('report')}
               leftIcon={<FileText className="w-4 h-4" />}
-              className="text-xs shrink-0"
+              className="text-xs shrink-0 min-h-[38px]"
             >
               مشاهده گزارش
             </Button>
@@ -164,30 +182,41 @@ export const ChecklistScreen: React.FC<ChecklistScreenProps> = ({ onNavigate }) 
         </div>
       </Card>
 
-      {/* 4 Category Navigation Tabs */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        {CATEGORY_TABS.map(tab => {
+      {/* 5 Category Navigation Tabs - Horizontally scrollable strip on mobile, 5-col grid on desktop */}
+      <div className="flex md:grid md:grid-cols-5 gap-2 overflow-x-auto no-scrollbar py-1 px-0.5 scroll-smooth snap-x snap-mandatory">
+        {ALL_TABS.map(tab => {
           const Icon = tab.icon;
-          const isActive = activeCategory === tab.id;
-          const summary = scoreResult?.categoryBreakdown[tab.id];
-          const count = items.filter(i => i.category === tab.id).length;
-          const inspected = items.filter(i => i.category === tab.id && i.status !== 'uninspected').length;
+          const isActive = currentTab === tab.id;
+
+          let count = 0;
+          let inspected = 0;
+          let sublabel = '';
+
+          if (tab.id === 'handover') {
+            count = handoverItems.length;
+            inspected = handoverSummary.presentHealthy + handoverSummary.presentDefective + handoverSummary.missing;
+            sublabel = 'اقلام تحویل';
+          } else {
+            count = items.filter(i => i.category === tab.id).length;
+            inspected = items.filter(i => i.category === tab.id && i.status !== 'uninspected').length;
+            sublabel = `وزن: ${CATEGORY_DEFINITIONS[tab.id]?.weight} امتیاز`;
+          }
 
           return (
             <button
               key={tab.id}
               type="button"
-              onClick={() => setActiveCategory(tab.id)}
-              className={`flex flex-col p-3 rounded-2xl text-right transition-all min-h-[58px] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 border ${
+              onClick={() => selectTab(tab.id)}
+              className={`flex flex-col p-2.5 sm:p-3 rounded-2xl text-right transition-all min-h-[58px] min-w-[145px] sm:min-w-[160px] md:min-w-0 snap-start shrink-0 md:shrink cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500 border ${
                 isActive
                   ? 'bg-emerald-600 text-white dark:bg-emerald-500 dark:text-slate-950 border-emerald-600 dark:border-emerald-400 shadow-md scale-[1.01]'
                   : 'bg-white dark:bg-[#111e17] text-slate-700 dark:text-slate-200 border-slate-200 dark:border-emerald-900/40 hover:bg-slate-50 dark:hover:bg-emerald-950/40'
               }`}
             >
               <div className="flex items-center justify-between w-full mb-1">
-                <span className="text-xs sm:text-sm font-bold flex items-center gap-1.5">
+                <span className="text-xs sm:text-sm font-bold flex items-center gap-1.5 truncate">
                   <Icon className="w-4 h-4 shrink-0" />
-                  <span>{tab.title}</span>
+                  <span className="truncate">{tab.title}</span>
                 </span>
                 <span
                   className={`text-[10px] px-1.5 py-0.5 rounded-md font-latin-num font-semibold ${
@@ -200,31 +229,38 @@ export const ChecklistScreen: React.FC<ChecklistScreenProps> = ({ onNavigate }) 
                 </span>
               </div>
               <span
-                className={`text-[10px] ${
+                className={`text-[10px] truncate ${
                   isActive ? 'text-emerald-100 dark:text-emerald-900' : 'text-slate-400 dark:text-slate-500'
                 }`}
               >
-                وزن: {CATEGORY_DEFINITIONS[tab.id]?.weight} امتیاز
+                {sublabel}
               </span>
             </button>
           );
         })}
       </div>
 
-      {/* Category Header Info */}
-      <div className="flex items-center justify-between px-1">
-        <div>
-          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">
-            {currentCategoryDef.title} ({categoryInspectedCount} از {categoryTotalCount} قطعه تکمیل شده)
-          </h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            {currentCategoryDef.description}
-          </p>
-        </div>
-        <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">
-          پیشرفت بخش: <span className="font-latin-num">{categoryPercent}%</span>
-        </span>
-      </div>
+      {/* Main Content: Handover Tab or Mechanical Category Items */}
+      {isHandoverTab ? (
+        <HandoverChecklistTab />
+      ) : (
+        <>
+          {/* Category Header Info */}
+          {currentCategoryDef && (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 px-1">
+              <div className="min-w-0">
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 persian-title">
+                  {currentCategoryDef.title} ({categoryInspectedCount} از {categoryTotalCount} قطعه تکمیل شده)
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  {currentCategoryDef.description}
+                </p>
+              </div>
+              <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 shrink-0 self-start sm:self-auto">
+                پیشرفت بخش: <span className="font-latin-num">{categoryPercent}%</span>
+              </span>
+            </div>
+          )}
 
       {/* Checklist Items List */}
       <div className="space-y-3">
@@ -235,7 +271,7 @@ export const ChecklistScreen: React.FC<ChecklistScreenProps> = ({ onNavigate }) 
           return (
             <Card
               key={item.id}
-              className={`p-4 sm:p-5 transition-all border ${
+              className={`checklist-single-col checklist-item-card p-4 sm:p-5 transition-all border ${
                 item.status === 'defective'
                   ? 'border-rose-300 dark:border-rose-900/60 bg-rose-50/20 dark:bg-rose-950/10'
                   : item.status === 'needs_review'
@@ -246,50 +282,54 @@ export const ChecklistScreen: React.FC<ChecklistScreenProps> = ({ onNavigate }) 
               }`}
             >
               <div className="flex flex-col gap-3">
-                {/* Item Label & Status Badge */}
-                <div className="flex items-start justify-between gap-3 text-right">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                    {/* Responsive Item Header: Title gets full width on top */}
+                    <div className="checklist-item-header flex flex-col gap-2 text-right">
+                      {/* Item Label - full width, natural Persian wrapping, never squished */}
+                      <h4 className="checklist-item-title text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100 persian-title">
                         {item.label}
                       </h4>
-                      <Badge variant={statusInfo.variant} size="sm" dot>
-                        {statusInfo.label}
-                      </Badge>
-                      <span className="text-[10px] text-slate-400 font-latin-num">
-                        {item.weight} pts
-                      </span>
-                    </div>
-                    {item.description && (
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                        {item.description}
-                      </p>
-                    )}
-                  </div>
 
-                  {/* Note Toggle Button */}
-                  <button
-                    type="button"
-                    onClick={() => setExpandedNoteItemId(isNoteExpanded ? null : item.id)}
-                    aria-label="یادداشت کارشناس"
-                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors min-h-[36px] ${
-                      item.note
-                        ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-700'
-                    }`}
-                  >
-                    <MessageSquare className="w-3.5 h-3.5" />
-                    <span>{item.note ? 'ویرایش یادداشت' : 'افزودن یادداشت'}</span>
-                    {isNoteExpanded ? (
-                      <ChevronUp className="w-3 h-3" />
-                    ) : (
-                      <ChevronDown className="w-3 h-3" />
-                    )}
-                  </button>
-                </div>
+                      {/* Sub-row: Badges, weight points, and Note action button */}
+                      <div className="checklist-item-actions flex flex-wrap items-center justify-between gap-2 pt-0.5">
+                        <div className="flex items-center gap-2">
+                          <Badge variant={statusInfo.variant} size="sm" dot>
+                            {statusInfo.label}
+                          </Badge>
+                          <span className="text-[11px] text-slate-400 font-latin-num font-medium">
+                            {item.weight} pts
+                          </span>
+                        </div>
+
+                        {/* Note Toggle Button */}
+                        <button
+                          type="button"
+                          onClick={() => setExpandedNoteItemId(isNoteExpanded ? null : item.id)}
+                          aria-label="یادداشت کارشناس"
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors min-h-[38px] cursor-pointer ${
+                            item.note
+                              ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                          }`}
+                        >
+                          <MessageSquare className="w-3.5 h-3.5 shrink-0" />
+                          <span>{item.note ? 'ویرایش یادداشت' : 'افزودن یادداشت'}</span>
+                          {isNoteExpanded ? (
+                            <ChevronUp className="w-3.5 h-3.5 shrink-0" />
+                          ) : (
+                            <ChevronDown className="w-3.5 h-3.5 shrink-0" />
+                          )}
+                        </button>
+                      </div>
+
+                      {item.description && (
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+                          {item.description}
+                        </p>
+                      )}
+                    </div>
 
                 {/* 4 Status Selection Buttons (One-Handed Mobile Friendly) */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                <div className="checklist-status-grid grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
                   {/* 1. Healthy (سالم) */}
                   <button
                     type="button"
@@ -388,16 +428,19 @@ export const ChecklistScreen: React.FC<ChecklistScreenProps> = ({ onNavigate }) 
           );
         })}
       </div>
+        </>
+      )}
 
       {/* Category Navigation Footer */}
-      <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-emerald-950/60">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-4 border-t border-slate-200 dark:border-emerald-950/60">
         <Button
           variant="outline"
           size="md"
           onClick={goToPrevCategory}
           rightIcon={<ArrowRight className="w-4 h-4" />}
+          className="min-h-[44px] justify-center"
         >
-          {currentCategoryIndex === 0 ? 'بازگشت به مشخصات خودرو' : 'بخش قبلی'}
+          {currentTabIndex === 0 ? 'بازگشت به مشخصات خودرو' : 'بخش قبلی'}
         </Button>
 
         <Button
@@ -405,9 +448,9 @@ export const ChecklistScreen: React.FC<ChecklistScreenProps> = ({ onNavigate }) 
           size="md"
           onClick={goToNextCategory}
           leftIcon={<ArrowLeft className="w-4 h-4" />}
-          className="font-bold"
+          className="font-bold min-h-[44px] justify-center"
         >
-          {currentCategoryIndex === CATEGORY_TABS.length - 1 ? 'تکمیل و صدور گزارش نهایی' : 'بخش بعدی چک‌لیست'}
+          {currentTabIndex === ALL_TABS.length - 1 ? 'تکمیل و صدور گزارش نهایی' : 'بخش بعدی چک‌لیست'}
         </Button>
       </div>
     </div>

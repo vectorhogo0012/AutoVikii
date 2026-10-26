@@ -6,11 +6,13 @@ import {
   paginateRecords,
   ProcessedArchiveRecord,
 } from './archiveLogic';
-import { InspectionRecord } from '../../types/inspection';
-import { InspectionScoreResult } from '../scoring/scoringEngine';
+import { InspectionRecord, ScoreResult } from '../../types/inspection';
 
-const mockScore = (score: number, defective: number = 0, needsReview: number = 0): InspectionScoreResult => ({
+const mockScore = (score: number, defective: number = 0, needsReview: number = 0): ScoreResult => ({
   currentScore: score,
+  totalWeight: 100,
+  inspectedWeight: 100,
+  earnedPoints: score,
   isProvisional: false,
   coveragePercent: 100,
   inspectedItemsCount: 30,

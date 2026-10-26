@@ -190,10 +190,10 @@ export const ArchiveScreen: React.FC<ArchiveScreenProps> = ({ onNavigate }) => {
           <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-100 dark:border-emerald-950/60 text-xs">
             <span className="text-slate-400 text-[11px] font-medium">فیلتر امتیاز:</span>
             {[
-              { id: 'all', label: 'همه نمرات' },
-              { id: 'high', label: 'عالی (۸۰-۱۰۰)' },
-              { id: 'medium', label: 'متوسط (۵۰-۷۹)' },
-              { id: 'low', label: 'دارای نقص (<۵۰)' },
+              { id: 'all' as const, label: 'همه نمرات' },
+              { id: 'high' as const, label: 'عالی (۸۰-۱۰۰)' },
+              { id: 'medium' as const, label: 'متوسط (۵۰-۷۹)' },
+              { id: 'low' as const, label: 'دارای نقص (<۵۰)' },
             ].map(pill => (
               <button
                 key={pill.id}
@@ -216,10 +216,10 @@ export const ArchiveScreen: React.FC<ArchiveScreenProps> = ({ onNavigate }) => {
 
             <span className="text-slate-400 text-[11px] font-medium">وضعیت عیوب:</span>
             {[
-              { id: 'all', label: 'همه' },
-              { id: 'has_defects', label: 'دارای نقص فنی' },
-              { id: 'clean', label: 'بدون نقص' },
-              { id: 'needs_review', label: 'نیازمند بررسی' },
+              { id: 'all' as const, label: 'همه' },
+              { id: 'has_defects' as const, label: 'دارای نقص فنی' },
+              { id: 'clean' as const, label: 'بدون نقص' },
+              { id: 'needs_review' as const, label: 'نیازمند بررسی' },
             ].map(pill => (
               <button
                 key={pill.id}

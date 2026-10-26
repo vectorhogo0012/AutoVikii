@@ -61,6 +61,29 @@ export interface PhotoEvidence {
   syncStatus: SyncStatus;
 }
 
+export type HandoverItemStatus = 
+  | 'present_healthy'     // موجود و سالم
+  | 'missing'             // مفقود / موجود نیست
+  | 'present_defective'   // موجود ولی معیوب
+  | 'uninspected';        // بررسی‌نشده
+
+export type HandoverCategory =
+  | 'safety_emergency'    // ایمنی و اقلام ضروری
+  | 'accessories_keys'    // لوازم و متعلقات
+  | 'cabin_comfort'       // تجهیزات کابین و امکانات
+  | 'exterior_equipment'  // تجهیزات بیرونی
+  | 'tire_tools';         // ابزار و تجهیزات تعویض چرخ
+
+export interface HandoverEquipmentItem {
+  id: string;
+  categoryId: HandoverCategory;
+  label: string;
+  description?: string;
+  status: HandoverItemStatus;
+  note?: string;
+  updatedAt?: string;
+}
+
 export interface InspectionRecord {
   id: string;
   workspaceId?: string;
@@ -68,6 +91,7 @@ export interface InspectionRecord {
   vehicle: VehicleInfo;
   status: InspectionRecordStatus;
   items: InspectionItem[];
+  handoverItems?: HandoverEquipmentItem[];
   notes?: string;
   inspectorName: string;
   revision: number;

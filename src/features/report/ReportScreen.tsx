@@ -21,6 +21,8 @@ import {
   User,
   Phone,
   Hash,
+  PackageCheck,
+  HelpCircle,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -28,10 +30,11 @@ import { Badge } from '../../components/ui/Badge';
 import { ProgressBar } from '../../components/ui/ProgressBar';
 import { formatEnglishDigits, formatVehiclePlate } from '../../lib/utils';
 import { NavigationTab } from '../../types/navigation';
-import { ChecklistCategory, InspectionItem, PhotoEvidence } from '../../types/inspection';
+import { ChecklistCategory, InspectionItem, PhotoEvidence, HandoverItemStatus, HandoverEquipmentItem } from '../../types/inspection';
 import { useInspection } from '../inspection/InspectionContext';
 import { PhotoLightboxModal } from '../photos/PhotoLightboxModal';
 import { CATEGORY_DEFINITIONS } from '../checklist/checklistTemplates';
+import { HANDOVER_CATEGORIES, calculateHandoverSummary } from '../checklist/handoverTemplates';
 
 export interface ReportScreenProps {
   onNavigate: (tab: NavigationTab) => void;
@@ -85,6 +88,43 @@ export const ReportScreen: React.FC<ReportScreenProps> = ({ onNavigate }) => {
         return <Badge variant="neutral" size="sm">بررسی نشده</Badge>;
     }
   };
+
+  const getHandoverStatusBadge = (status: HandoverItemStatus) => {
+    switch (status) {
+      case 'present_healthy':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+            <span>موجود و سالم</span>
+          </span>
+        );
+      case 'present_defective':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+            <span>موجود ولی معیوب</span>
+          </span>
+        );
+      case 'missing':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300">
+            <XCircle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+            <span>مفقود / ناموجود</span>
+          </span>
+        );
+      case 'uninspected':
+      default:
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+            <HelpCircle className="w-3.5 h-3.5 text-slate-400" />
+            <span>بررسی‌نشده</span>
+          </span>
+        );
+    }
+  };
+
+  const handoverItems = currentInspection.handoverItems || [];
+  const handoverSummary = calculateHandoverSummary(handoverItems);
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
@@ -539,13 +579,13 @@ export const ReportScreen: React.FC<ReportScreenProps> = ({ onNavigate }) => {
                       const itemPhotos = getItemPhotos(item.id);
                       return (
                         <div key={item.id} className="p-3 flex flex-col sm:flex-row sm:items-start justify-between gap-2 hover:bg-slate-50/50 dark:hover:bg-white/[0.02]">
-                          <div className="space-y-1 flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-slate-800 dark:text-slate-200">
+                          <div className="space-y-1 flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-bold text-slate-800 dark:text-slate-200 persian-title">
                                 {item.label}
                               </span>
                               {getItemStatusBadge(item.status)}
-                              <span className="text-[10px] text-slate-400">
+                              <span className="text-[10px] text-slate-400 whitespace-nowrap">
                                 (وزن: <span className="font-latin-num">{item.weight}</span> نمره)
                               </span>
                             </div>
@@ -557,8 +597,8 @@ export const ReportScreen: React.FC<ReportScreenProps> = ({ onNavigate }) => {
                             )}
 
                             {item.note && (
-                              <p className="text-[11px] text-emerald-800 dark:text-emerald-300/90 bg-emerald-50/60 dark:bg-emerald-950/20 px-2.5 py-1 rounded-lg mt-1 inline-block">
-                                <span className="font-semibold">توضیح کارشناس:</span> {item.note}
+                              <p className="text-[11px] text-emerald-800 dark:text-emerald-300/90 bg-emerald-50/60 dark:bg-emerald-950/20 px-2.5 py-1 rounded-lg mt-1 inline-block break-words">
+                                <span className="font-medium">توضیح کارشناس:</span> {item.note}
                               </p>
                             )}
                           </div>
@@ -586,6 +626,109 @@ export const ReportScreen: React.FC<ReportScreenProps> = ({ onNavigate }) => {
                         </div>
                       );
                     })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Dedicated Handover Equipment Delivery Section */}
+        <div className="print-keep-together space-y-4 pt-4 border-t border-slate-200 dark:border-emerald-950/60">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-2 border-slate-200 dark:border-emerald-950/60">
+            <div className="flex items-center gap-2">
+              <PackageCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+              <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                چک‌لیست تجهیزات، متعلقات و اقلام تحویل خودرو
+              </h4>
+            </div>
+            <span className="text-[11px] text-slate-500 dark:text-slate-400">
+              کل اقلام ارزیابی‌شده: {handoverItems.length} قلم
+            </span>
+          </div>
+
+          {/* Quick Handover Delivery Stats */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <div className="p-2.5 rounded-xl border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/40 dark:bg-emerald-950/20 flex items-center justify-between text-xs">
+              <span className="text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>موجود و سالم</span>
+              </span>
+              <span className="font-bold font-latin-num text-emerald-800 dark:text-emerald-300">
+                {handoverSummary.presentHealthy}
+              </span>
+            </div>
+            <div className="p-2.5 rounded-xl border border-amber-200 dark:border-amber-900/60 bg-amber-50/40 dark:bg-amber-950/20 flex items-center justify-between text-xs">
+              <span className="text-amber-700 dark:text-amber-400 font-semibold flex items-center gap-1">
+                <AlertTriangle className="w-3.5 h-3.5" />
+                <span>موجود ولی معیوب</span>
+              </span>
+              <span className="font-bold font-latin-num text-amber-800 dark:text-amber-300">
+                {handoverSummary.presentDefective}
+              </span>
+            </div>
+            <div className="p-2.5 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50/40 dark:bg-rose-950/20 flex items-center justify-between text-xs">
+              <span className="text-rose-700 dark:text-rose-400 font-semibold flex items-center gap-1">
+                <XCircle className="w-3.5 h-3.5" />
+                <span>مفقود / ناموجود</span>
+              </span>
+              <span className="font-bold font-latin-num text-rose-800 dark:text-rose-300">
+                {handoverSummary.missing}
+              </span>
+            </div>
+            <div className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 flex items-center justify-between text-xs">
+              <span className="text-slate-600 dark:text-slate-400 font-semibold flex items-center gap-1">
+                <HelpCircle className="w-3.5 h-3.5" />
+                <span>بررسی‌نشده</span>
+              </span>
+              <span className="font-bold font-latin-num text-slate-700 dark:text-slate-300">
+                {handoverSummary.uninspected}
+              </span>
+            </div>
+          </div>
+
+          {/* Handover Categories Breakdown Table */}
+          <div className="space-y-3">
+            {HANDOVER_CATEGORIES.map(category => {
+              const categoryItems = handoverItems.filter(i => i.categoryId === category.id);
+              if (categoryItems.length === 0) return null;
+
+              return (
+                <div key={category.id} className="print-keep-together border border-slate-200 dark:border-emerald-900/40 rounded-2xl overflow-hidden">
+                  <div className="px-4 py-2 bg-slate-100/90 dark:bg-[#13221a] flex items-center justify-between border-b border-slate-200 dark:border-emerald-900/40 text-xs">
+                    <span className="font-bold text-slate-900 dark:text-slate-100">
+                      {category.title} ({categoryItems.length} قلم)
+                    </span>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                      {category.description}
+                    </span>
+                  </div>
+
+                  <div className="divide-y divide-slate-100 dark:divide-emerald-950/40 text-xs">
+                    {categoryItems.map(item => (
+                      <div key={item.id} className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-slate-50/50 dark:hover:bg-white/[0.02]">
+                        <div className="space-y-0.5 flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold text-slate-800 dark:text-slate-200 persian-title">
+                              {item.label}
+                            </span>
+                            {item.description && (
+                              <span className="text-[11px] text-slate-400">
+                                ({item.description})
+                              </span>
+                            )}
+                          </div>
+                          {item.note && (
+                            <p className="text-[11px] text-amber-800 dark:text-amber-300 bg-amber-50/80 dark:bg-amber-950/30 px-2 py-0.5 rounded mt-1 inline-block break-words">
+                              <span className="font-medium">توضیح کارشناس:</span> {item.note}
+                            </p>
+                          )}
+                        </div>
+                        <div className="shrink-0 self-start sm:self-auto">
+                          {getHandoverStatusBadge(item.status)}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               );

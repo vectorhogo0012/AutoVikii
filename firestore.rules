@@ -3,9 +3,9 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions
+    // Helper functions for authorization
     function isAuthenticated() {
-      return request.auth != null;
+      return request.auth != null && request.auth.uid != null;
     }
 
     function isWorkspaceMember(workspaceId) {
@@ -24,15 +24,15 @@ service cloud.firestore {
       );
     }
 
-    // Connectivity test path for health checks
+    // Health check path restricted to authenticated users only - NO public reads
     match /test/{docId} {
-      allow read: if true;
+      allow read: if isAuthenticated();
       allow write: if false;
     }
 
-    // Workspaces collection
+    // Workspaces collection with RBAC
     match /workspaces/{workspaceId} {
-      // Members can read their workspace document
+      // Workspace members can read only their own workspace document
       allow read: if isAuthenticated() && (
         resource.data.ownerId == request.auth.uid ||
         (request.auth.uid in resource.data.members)
@@ -40,27 +40,49 @@ service cloud.firestore {
 
       // Authenticated users can create a workspace where they are owner
       allow create: if isAuthenticated() &&
-        request.resource.data.ownerId == request.auth.uid;
+        request.resource.data.ownerId == request.auth.uid &&
+        request.resource.data.name is string &&
+        request.resource.data.name.size() > 0 &&
+        request.resource.data.name.size() <= 120;
 
-      // Only the workspace owner can update workspace details, and cannot reassign ownership
+      // Only the workspace owner can update workspace details; ownership cannot be hijacked
       allow update: if isWorkspaceOwner(workspaceId) &&
-        request.resource.data.ownerId == resource.data.ownerId;
+        request.resource.data.ownerId == resource.data.ownerId &&
+        request.resource.data.name is string &&
+        request.resource.data.name.size() <= 120;
 
-      // Only owner can delete a workspace
+      // Only the workspace owner can delete a workspace
       allow delete: if isWorkspaceOwner(workspaceId);
 
-      // Inspections under workspace
+      // Inspections under workspace (isolated per workspace)
       match /inspections/{inspectionId} {
-        allow read, write: if isWorkspaceMember(workspaceId);
+        allow read: if isWorkspaceMember(workspaceId);
 
-        // Photo metadata subcollection
+        allow create: if isWorkspaceMember(workspaceId) &&
+          request.resource.data.trackingCode is string &&
+          request.resource.data.vehicle is map &&
+          request.resource.data.revision is number;
+
+        allow update: if isWorkspaceMember(workspaceId) &&
+          request.resource.data.revision >= resource.data.revision;
+
+        allow delete: if isWorkspaceMember(workspaceId);
+
+        // Photo evidence metadata subcollection
         match /photos/{photoId} {
-          allow read, write: if isWorkspaceMember(workspaceId);
+          allow read: if isWorkspaceMember(workspaceId);
+
+          allow create, update: if isWorkspaceMember(workspaceId) &&
+            request.resource.data.fileSize is number &&
+            request.resource.data.fileSize <= 10485760 &&
+            request.resource.data.mimeType.matches('image/(jpeg|png|webp)');
+
+          allow delete: if isWorkspaceMember(workspaceId);
         }
       }
     }
 
-    // Default deny all other paths
+    // Default deny all other collections and documents
     match /{document=**} {
       allow read, write: if false;
     }

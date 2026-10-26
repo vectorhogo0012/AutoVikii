@@ -9,9 +9,12 @@ import {
   SaveStatus,
   SyncStatus,
   ConflictRecordInfo,
+  HandoverEquipmentItem,
+  HandoverItemStatus,
 } from '../../types/inspection';
 import { inspectionRepository } from '../../lib/repository/inspectionRepository';
 import { calculateInspectionScore } from '../scoring/scoringEngine';
+import { createDefaultHandoverItems } from '../checklist/handoverTemplates';
 import { compressImage } from '../../lib/media/imageCompression';
 import { StorageQuotaInfo, indexedDbStorage } from '../../lib/storage/indexedDb';
 import { syncEngine, SyncEngineState } from '../../lib/sync/syncEngine';
@@ -37,6 +40,8 @@ interface InspectionContextType {
   updateVehicle: (vehicle: VehicleInfo) => Promise<void>;
   setItemStatus: (itemId: string, status: ItemStatus) => void;
   setItemNote: (itemId: string, note: string) => void;
+  setHandoverItemStatus: (itemId: string, status: HandoverItemStatus) => void;
+  setHandoverItemNote: (itemId: string, note: string) => void;
   setInspectionStatus: (status: 'in_progress' | 'completed' | 'draft') => Promise<void>;
   deleteInspectionRecord: (id: string) => Promise<boolean>;
   addPhotoToItem: (itemId: string, file: File) => Promise<PhotoEvidence>;
@@ -162,6 +167,9 @@ export const InspectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       }
 
       if (targetRecord) {
+        if (!targetRecord.handoverItems || targetRecord.handoverItems.length === 0) {
+          targetRecord = { ...targetRecord, handoverItems: createDefaultHandoverItems() };
+        }
         setCurrentInspection(targetRecord);
         await loadInspectionPhotos(targetRecord.id);
       }
@@ -193,13 +201,16 @@ export const InspectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const selectInspection = useCallback(async (id: string) => {
     const record = await inspectionRepository.getById(id);
     if (record) {
-      setCurrentInspection(record);
+      const ensuredRecord = (!record.handoverItems || record.handoverItems.length === 0)
+        ? { ...record, handoverItems: createDefaultHandoverItems() }
+        : record;
+      setCurrentInspection(ensuredRecord);
       try {
-        localStorage.setItem(LAST_ACTIVE_INSPECTION_KEY, record.id);
+        localStorage.setItem(LAST_ACTIVE_INSPECTION_KEY, ensuredRecord.id);
       } catch {
         // Ignore
       }
-      await loadInspectionPhotos(record.id);
+      await loadInspectionPhotos(ensuredRecord.id);
       await refreshStorageQuota();
     }
   }, [loadInspectionPhotos, refreshStorageQuota]);
@@ -320,6 +331,96 @@ export const InspectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const updatedRecord: InspectionRecord = {
       ...currentInspection,
       items: updatedItems,
+      revision: (currentInspection.revision || 1) + 1,
+      syncStatus: 'pending_sync',
+      updatedAt: new Date().toISOString(),
+    };
+
+    setCurrentInspection(updatedRecord);
+    setSaveStatus('saving');
+
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    debounceTimerRef.current = setTimeout(() => {
+      inspectionRepository.save(updatedRecord)
+        .then(() => {
+          setInspections(prev => prev.map(r => (r.id === updatedRecord.id ? updatedRecord : r)));
+          setSaveStatus('saved');
+          setLastSavedAt(new Date().toLocaleTimeString('fa-IR'));
+
+          if (activeWorkspace && isOnline) {
+            syncEngine.syncAll(activeWorkspace.id, user?.uid);
+          }
+        })
+        .catch(() => setSaveStatus('error'));
+    }, 450);
+  }, [currentInspection, activeWorkspace, isOnline, user]);
+
+  const setHandoverItemStatus = useCallback((itemId: string, status: HandoverItemStatus) => {
+    if (!currentInspection) return;
+    setSaveStatus('saving');
+
+    const currentHandover = currentInspection.handoverItems?.length
+      ? currentInspection.handoverItems
+      : createDefaultHandoverItems();
+
+    const updatedHandover = currentHandover.map(item => {
+      if (item.id === itemId) {
+        return {
+          ...item,
+          status,
+          updatedAt: new Date().toISOString(),
+        };
+      }
+      return item;
+    });
+
+    const updatedRecord: InspectionRecord = {
+      ...currentInspection,
+      handoverItems: updatedHandover,
+      revision: (currentInspection.revision || 1) + 1,
+      syncStatus: 'pending_sync',
+      updatedAt: new Date().toISOString(),
+    };
+
+    setCurrentInspection(updatedRecord);
+
+    inspectionRepository.save(updatedRecord)
+      .then(() => {
+        setInspections(prev => prev.map(r => (r.id === updatedRecord.id ? updatedRecord : r)));
+        setSaveStatus('saved');
+        setLastSavedAt(new Date().toLocaleTimeString('fa-IR'));
+
+        if (activeWorkspace && isOnline) {
+          syncEngine.syncAll(activeWorkspace.id, user?.uid);
+        }
+      })
+      .catch(() => setSaveStatus('error'));
+  }, [currentInspection, activeWorkspace, isOnline, user]);
+
+  const setHandoverItemNote = useCallback((itemId: string, note: string) => {
+    if (!currentInspection) return;
+
+    const currentHandover = currentInspection.handoverItems?.length
+      ? currentInspection.handoverItems
+      : createDefaultHandoverItems();
+
+    const updatedHandover = currentHandover.map(item => {
+      if (item.id === itemId) {
+        return {
+          ...item,
+          note,
+          updatedAt: new Date().toISOString(),
+        };
+      }
+      return item;
+    });
+
+    const updatedRecord: InspectionRecord = {
+      ...currentInspection,
+      handoverItems: updatedHandover,
       revision: (currentInspection.revision || 1) + 1,
       syncStatus: 'pending_sync',
       updatedAt: new Date().toISOString(),
@@ -549,6 +650,8 @@ export const InspectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         updateVehicle,
         setItemStatus,
         setItemNote,
+        setHandoverItemStatus,
+        setHandoverItemNote,
         setInspectionStatus,
         deleteInspectionRecord,
         addPhotoToItem,

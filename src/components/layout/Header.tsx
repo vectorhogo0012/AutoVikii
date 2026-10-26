@@ -69,13 +69,13 @@ export const Header: React.FC<HeaderProps> = ({
     <header className="sticky top-0 z-40 w-full glass-panel border-b border-slate-200/80 dark:border-emerald-950/80 transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
         {/* Brand & Title */}
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-emerald-800 flex items-center justify-center text-white shadow-sm shadow-emerald-700/20 shrink-0">
-            <ShieldCheck className="w-6 h-6 text-white" />
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-emerald-800 flex items-center justify-center text-white shadow-sm shadow-emerald-700/20 shrink-0">
+            <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-base font-bold text-slate-900 dark:text-slate-100 tracking-tight">
+              <h1 className="text-xs sm:text-base font-bold text-slate-900 dark:text-slate-100 tracking-tight">
                 سامانه کارشناسی خودرو
               </h1>
               {activeWorkspace ? (
@@ -88,13 +88,15 @@ export const Header: React.FC<HeaderProps> = ({
                   <span className="truncate max-w-[140px]">{activeWorkspace.name}</span>
                 </button>
               ) : (
-                <Badge variant="success" size="sm">
-                  نسخه کارشناسی
-                </Badge>
+                <span className="hidden sm:inline-flex">
+                  <Badge variant="success" size="sm">
+                    نسخه کارشناسی
+                  </Badge>
+                </span>
               )}
             </div>
             {currentTabTitle && (
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium">
                 {currentTabTitle}
               </p>
             )}

@@ -1,9 +1,8 @@
-import { InspectionRecord } from '../../types/inspection';
-import { InspectionScoreResult } from '../scoring/scoringEngine';
+import { InspectionRecord, ScoreResult } from '../../types/inspection';
 
 export interface ProcessedArchiveRecord {
   record: InspectionRecord;
-  score: InspectionScoreResult;
+  score: ScoreResult;
 }
 
 export type ScoreFilterType = 'all' | 'high' | 'medium' | 'low';
